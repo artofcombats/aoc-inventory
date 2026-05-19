@@ -162,7 +162,15 @@ function photoEl(p) {
   const imgs = getImgs(p);
   if (imgs.length > 0) {
     const badge = imgs.length > 1 ? `<div class="photo-count">📷 ${imgs.length}</div>` : '';
-    return `<img src="${imgs[0]}" alt="${p.name}" loading="lazy">${badge}`;
+    
+    // 🎯 修正網址走錯路問題：自動補上 GitHub Pages 的專案絕對路徑
+    let imgSrc = imgs[0];
+    if (!imgSrc.startsWith('http')) {
+      const cleanPath = imgSrc.replace(/^\.\//, '').replace(/^\//, '');
+      imgSrc = `https://artofcombats.github.io/aoc-inventory/${cleanPath}`;
+    }
+    
+    return `<img src="${imgSrc}" alt="${p.name}" loading="lazy">${badge}`;
   }
   return `<div class="card-photo-placeholder">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
@@ -170,7 +178,6 @@ function photoEl(p) {
       <path d="M21 15l-5-5L5 21"/>
     </svg><span>暫無圖片</span></div>`;
 }
-
 const AOC_ORDER = [
   'AOC 運動涼感T 白色',
   'AOC 運動涼感T 黑色',
