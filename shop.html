@@ -301,21 +301,38 @@ function closeLB(e) {
   if (e.target === document.getElementById('lb-overlay')) closeLBBtn();
 }
 
-// Firebase REST API
+// Firebase REST API（已修正物件與陣列轉換問題）
 (function() {
   const DB_URL = 'https://aoc-inventory-d151b-default-rtdb.firebaseio.com';
   function load() {
     fetch(DB_URL + '/products.json')
       .then(r => r.json())
       .then(data => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          allProducts = data;
-          render();
+        if (data) {
+          let parsedData = [];
+          if (Array.isArray(data)) {
+            parsedData = data.filter(Boolean);
+          } else {
+            parsedData = Object.keys(data).map(key => {
+              if (data[key] && typeof data[key] === 'object') {
+                return { id: key, ...data[key] };
+              }
+              return data[key];
+            }).filter(Boolean);
+          }
+
+          if (parsedData.length > 0) {
+            allProducts = parsedData;
+            render();
+          } else {
+            document.getElementById('grid-wrap').innerHTML = '<div class="empty">目前暫無商品資料</div>';
+          }
         } else {
           document.getElementById('grid-wrap').innerHTML = '<div class="empty">目前暫無商品資料</div>';
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error(err);
         document.getElementById('grid-wrap').innerHTML = '<div class="loading"><div style="color:var(--red)">⚠️ 無法載入，請重新整理</div></div>';
       });
   }
