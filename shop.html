@@ -302,41 +302,62 @@ function closeLB(e) {
   if (e.target === document.getElementById('lb-overlay')) closeLBBtn();
 }
 
-// Firebase REST API（已修正物件與陣列轉換問題）
+// Firebase REST API（已修正：同時撈取 products 與獨立的 photos 並完美結合）
 (function() {
   const DB_URL = 'https://aoc-inventory-d151b-default-rtdb.firebaseio.com';
+  
   function load() {
-    fetch(DB_URL + '/products.json')
-      .then(r => r.json())
-      .then(data => {
-        if (data) {
-          let parsedData = [];
-          if (Array.isArray(data)) {
-            parsedData = data.filter(Boolean);
-          } else {
-            parsedData = Object.keys(data).map(key => {
-              if (data[key] && typeof data[key] === 'object') {
-                return { id: key, ...data[key] };
-              }
-              return data[key];
-            }).filter(Boolean);
-          }
+    // 🎯 同時對 Firebase 發出兩個請求：抓商品資料與照片資料
+    Promise.all([
+      fetch(DB_URL + '/products.json').then(r => r.json()),
+      fetch(DB_URL + '/photos.json').then(r => r.json())
+    ])
+    .then(([prodData, photoData]) => {
+      if (prodData) {
+        let parsedData = [];
+        
+        // 1. 先處理 products 資料型態（相容陣列與物件）
+        if (Array.isArray(prodData)) {
+          parsedData = prodData.filter(Boolean);
+        } else {
+          parsedData = Object.keys(prodData).map(key => {
+            if (prodData[key] && typeof prodData[key] === 'object') {
+              return { id: key, ...prodData[key] };
+            }
+            return prodData[key];
+          }).filter(Boolean);
+        }
 
-          if (parsedData.length > 0) {
-            allProducts = parsedData;
-            render();
-          } else {
-            document.getElementById('grid-wrap').innerHTML = '<div class="empty">目前暫無商品資料</div>';
-          }
+        // 2. 🎯 把分家的照片（photos）完美黏回對應的商品身上
+        if (photoData) {
+          parsedData = parsedData.map(p => {
+            // 利用商品 id 或 sku 去對應 photos 裡的資料
+            const matchedPhoto = photoData[p.id] || photoData[p.sku];
+            if (matchedPhoto && matchedPhoto.imgs) {
+              p.imgs = matchedPhoto.imgs;
+            } else if (matchedPhoto && matchedPhoto.img) {
+              p.imgs = [matchedPhoto.img];
+            }
+            return p;
+          });
+        }
+
+        if (parsedData.length > 0) {
+          allProducts = parsedData;
+          render();
         } else {
           document.getElementById('grid-wrap').innerHTML = '<div class="empty">目前暫無商品資料</div>';
         }
-      })
-      .catch((err) => {
-        console.error(err);
-        document.getElementById('grid-wrap').innerHTML = '<div class="loading"><div style="color:var(--red)">⚠️ 無法載入，請重新整理</div></div>';
-      });
+      } else {
+        document.getElementById('grid-wrap').innerHTML = '<div class="empty">目前暫無商品資料</div>';
+      }
+    })
+    .catch((err) => {
+      console.error('載入發生錯誤:', err);
+      document.getElementById('grid-wrap').innerHTML = '<div class="loading"><div style="color:var(--red)">⚠️ 無法載入，請重新整理</div></div>';
+    });
   }
+  
   load();
   setInterval(load, 30000);
 })();
