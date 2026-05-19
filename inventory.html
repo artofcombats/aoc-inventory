@@ -1,0 +1,2572 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格鬥藝術泰拳館 · 庫存管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const cfg = {
+    apiKey: "AIzaSyCr4jmpkgP05LnPq2-wn70YfftSVLmn_R4",
+    authDomain: "aoc-inventory-d151b.firebaseapp.com",
+    databaseURL: "https://aoc-inventory-d151b-default-rtdb.firebaseio.com",
+    projectId: "aoc-inventory-d151b",
+    storageBucket: "aoc-inventory-d151b.firebasestorage.app",
+    messagingSenderId: "656520251738",
+    appId: "1:656520251738:web:8ee8e0c84392b5794e0b63"
+  };
+  const app = initializeApp(cfg);
+  const db = getDatabase(app);
+  window._db = db;
+  window._ref = ref;
+  window._set = set;
+  window._onValue = onValue;
+  window._remove = remove;
+
+  window._fbReady = true;
+  // 直接呼叫 initFirebase（若已定義），不依賴事件時序
+  if (typeof window._initFirebaseCb === 'function') {
+    window._initFirebaseCb();
+  }
+</script>
+<style>
+  :root {
+    --black: #0a0a0a;
+    --dark: #111111;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --red: #c8273a;
+    --red-dark: #9c1e2e;
+    --gold: #d4a843;
+    --gold-light: #e8c06a;
+    --white: #f0ece4;
+    --gray: #888;
+    --light-gray: #555;
+    --green: #2d7a4f;
+    --green-light: #3a9e66;
+    --orange: #c46b1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--dark);
+    border-bottom: 2px solid var(--red);
+    padding: 0 28px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--gray);
+    letter-spacing: 1px;
+    margin-top: -2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-primary {
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary:hover { background: var(--red-dark); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--gray);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover { border-color: var(--red); color: var(--white); }
+
+  /* ===== PAGES ===== */
+  .page { display: none; animation: fadeIn 0.25s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== HOME PAGE ===== */
+  #page-home {
+    padding: 36px 28px;
+  }
+
+  .home-hero {
+    margin-bottom: 36px;
+  }
+
+  .home-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 3px;
+    line-height: 1;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .home-title span { color: var(--red); }
+
+  .home-subtitle {
+    color: var(--gray);
+    font-size: 14px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .stat-value.red { color: var(--red); }
+  .stat-value.gold { color: var(--gold); }
+  .stat-value.green { color: var(--green-light); }
+
+  .stat-note {
+    font-size: 11px;
+    color: var(--light-gray);
+    margin-top: 4px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .category-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .category-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--red);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .category-card:hover {
+    border-color: var(--red);
+    transform: translateY(-2px);
+  }
+
+  .category-card:hover::before { opacity: 1; }
+
+  .cat-icon { font-size: 32px; margin-bottom: 12px; }
+  .cat-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .cat-count { font-size: 12px; color: var(--gray); }
+
+  .cat-badge {
+    display: inline-block;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  .cat-arrow {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--light-gray);
+    font-size: 18px;
+    transition: color 0.2s;
+  }
+
+  .category-card:hover .cat-arrow { color: var(--red); }
+
+  /* ===== CATEGORY PAGE ===== */
+  #page-category { padding: 28px; }
+
+  .page-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .btn-back {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gray);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-back:hover { border-color: var(--white); color: var(--white); }
+
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .breadcrumb-cur { color: var(--white); font-weight: 700; }
+
+  .product-table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-title {
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    background: #161616;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(200, 39, 58, 0.05); }
+
+  /* 全商品表靜態表格 */
+  #page-catalog tbody tr { cursor: default; }
+  #page-catalog tbody tr:hover { background: transparent; }
+  #page-catalog td { padding: 10px 16px; font-size: 13px; }
+  #page-catalog thead th { font-size: 11px; }
+  #page-catalog td.price-member { color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 16px; }
+  #page-catalog td.price-athlete { color: var(--green-light); font-family: 'Bebas Neue', sans-serif; font-size: 16px; }
+
+  td {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+
+  .td-product { font-weight: 500; }
+  .td-sku { font-size: 12px; color: var(--gray); font-family: monospace; }
+
+  .price-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 0.5px;
+  }
+
+  .price-normal { color: var(--white); }
+  .price-member { color: var(--gold); }
+  .price-athlete { color: var(--green-light); }
+
+  .stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .stock-ok { background: rgba(45, 122, 79, 0.2); color: #3a9e66; }
+  .stock-low { background: rgba(196, 107, 26, 0.2); color: #e07c1f; }
+  .stock-out { background: rgba(200, 39, 58, 0.2); color: var(--red); }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .td-action { text-align: right; }
+
+  .btn-deduct {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gray);
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .btn-deduct:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ===== PRODUCT DETAIL PAGE ===== */
+  #page-detail { padding: 28px; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .info-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+
+  .info-card-title {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  .product-name-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+
+  .product-sku-big {
+    font-size: 12px;
+    color: var(--gray);
+    font-family: monospace;
+    margin-bottom: 16px;
+  }
+
+  .price-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .price-block {
+    background: #222;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .price-block-label {
+    font-size: 11px;
+    color: var(--gray);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .price-block-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+  }
+
+  .stock-display {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .stock-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stock-unit {
+    font-size: 13px;
+    color: var(--gray);
+    margin-bottom: 20px;
+  }
+
+  .deduct-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .qty-input {
+    flex: 1;
+    background: #222;
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    text-align: center;
+    width: 70px;
+  }
+
+  .qty-input:focus { outline: none; border-color: var(--red); }
+
+  .note-input {
+    width: 100%;
+    background: #222;
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    margin-top: 10px;
+    resize: none;
+  }
+
+  .note-input:focus { outline: none; border-color: var(--red); }
+
+  .btn-confirm {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-confirm:hover { background: var(--red-dark); }
+
+  /* ===== LOG ===== */
+  .log-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: #222;
+    border-radius: 8px;
+    border-left: 3px solid var(--red);
+  }
+
+  .log-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(200, 39, 58, 0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .log-meta { flex: 1; }
+  .log-action { font-weight: 700; font-size: 13px; }
+  .log-note { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .log-time { font-size: 11px; color: var(--light-gray); margin-top: 4px; }
+  .log-qty {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+
+  /* ===== LOG PAGE ===== */
+  #page-log { padding: 28px; }
+
+  .log-filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--gray);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  .deduct-type-row { display:flex; gap:8px; margin-bottom:10px; }
+  .deduct-type-btn {
+    flex:1; padding:8px 4px; border-radius:8px; border:1px solid var(--border);
+    color:var(--gray); font-size:13px; font-weight:700; cursor:pointer;
+    background:transparent; font-family:'Noto Sans TC',sans-serif;
+    transition:all 0.15s; letter-spacing:0.5px;
+  }
+  .deduct-type-btn.active { border-color:var(--red); color:var(--white); background:rgba(200,39,58,0.15); }
+
+  .filter-chip.active, .filter-chip:hover {
+    border-color: var(--red);
+    color: var(--white);
+    background: rgba(200, 39, 58, 0.1);
+  }
+
+  .log-full-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .log-full-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 36px 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .log-full-item:hover { border-color: var(--red); }
+
+  .log-full-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(200, 39, 58, 0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .log-full-product { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .log-full-note { font-size: 12px; color: var(--gray); }
+  .log-full-time { font-size: 12px; color: var(--light-gray); text-align: right; }
+  .log-full-qty { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--red); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 420px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  .form-row { margin-bottom: 14px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: #222;
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+  }
+
+  .form-input:focus { outline: none; border-color: var(--red); }
+
+  select.form-input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+
+  /* ===== NAV TABS ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--dark);
+    border-top: 1px solid var(--border);
+    display: flex;
+    height: 58px;
+    z-index: 50;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s;
+    color: var(--light-gray);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .nav-item:hover, .nav-item.active { color: var(--red); }
+
+  body { padding-bottom: 70px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--light-gray);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon"><img src="data:image/png;base64,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" alt="Art of Combats" style="width:34px;height:34px;object-fit:contain;display:block;"></div>
+    <div>
+      <div class="logo-text">格鬥藝術泰拳館</div>
+      <div class="logo-sub">INVENTORY SYSTEM</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-ghost" style="margin-right:6px" onclick="openEditCatPage()">✏️ 編輯分類</button>
+    <button class="btn-ghost" onclick="openAddProduct()">＋ 新增商品</button>
+    <button class="btn-primary" onclick="openDeductModal()">⬇ 扣庫存</button>
+  </div>
+</header>
+
+<!-- PAGE: HOME -->
+<div id="page-home" class="page active">
+  <div class="home-hero">
+    <div class="home-title">庫存<span>管理</span></div>
+    <div class="home-subtitle">點擊分類查看商品明細</div>
+  </div>
+
+  <div class="stats-row" style="grid-template-columns:1fr 1fr">
+    <div class="stat-card">
+      <div class="stat-label">商品總數</div>
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-note">所有商品種類</div>
+    </div>
+    <div class="stat-card" onclick="navTo('lowstock', null)" style="cursor:pointer;border:1px solid var(--border);transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div class="stat-label">庫存偏低</div>
+      <div class="stat-value" style="color:var(--orange)" id="stat-low">—</div>
+      <div class="stat-note" style="color:var(--orange);opacity:0.7">點擊查看明細 →</div>
+    </div>
+  </div>
+
+  <div class="section-title">商品分類</div>
+  <div class="category-grid" id="category-grid"></div>
+</div>
+
+<!-- PAGE: LOW STOCK -->
+<div id="page-lowstock" class="page">
+  <div style="padding:28px">
+    <div class="page-nav" style="margin-bottom:24px">
+      <button class="btn-back" onclick="goHome()">← 返回</button>
+      <div class="breadcrumb">
+        <span>首頁</span>
+        <span>›</span>
+        <span class="breadcrumb-cur">庫存偏低</span>
+      </div>
+    </div>
+    <div class="home-hero" style="margin-bottom:20px">
+      <div class="home-title" style="color:var(--orange)">庫存<span style="color:var(--white)">偏低</span></div>
+      <div class="home-subtitle">庫存 ≤ 10 件的商品</div>
+    </div>
+    <div class="product-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>商品名稱</th>
+            <th>SKU</th>
+            <th>分類</th>
+            <th>庫存</th>
+          </tr>
+        </thead>
+        <tbody id="low-stock-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE: EDIT CATEGORIES -->
+<div id="page-editcat" class="page">
+  <div style="padding:28px">
+    <div class="page-nav" style="margin-bottom:24px">
+      <button class="btn-back" onclick="goHome()">← 返回</button>
+      <div class="breadcrumb">
+        <span>首頁</span><span>›</span>
+        <span class="breadcrumb-cur">編輯分類</span>
+      </div>
+    </div>
+    <div class="home-hero" style="margin-bottom:20px">
+      <div class="home-title">商品<span>分類</span></div>
+      <div class="home-subtitle">管理商品分類名稱</div>
+    </div>
+    <div id="edit-cat-list" style="margin-bottom:20px"></div>
+    <button class="btn-confirm" style="width:100%;background:var(--green-light)" onclick="openAddCatModal()">＋ 新增分類</button>
+  </div>
+</div>
+
+<!-- PAGE: CATEGORY -->
+<div id="page-category" class="page">
+  <div class="page-nav">
+    <button class="btn-back" onclick="goHome()">← 返回</button>
+    <div class="breadcrumb">
+      <span>首頁</span>
+      <span>›</span>
+      <span class="breadcrumb-cur" id="cat-breadcrumb">分類</span>
+    </div>
+  </div>
+
+  <div class="product-table-wrap">
+    <div class="table-header">
+      <div class="table-title" id="cat-table-title">商品列表</div>
+      <button class="btn-ghost" onclick="openAddProduct()">＋ 新增</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>商品名稱</th>
+          <th>一般價</th>
+          <th>會員價</th>
+          <th>選手價</th>
+          <th>庫存</th>
+          <th style="text-align:right">操作</th>
+        </tr>
+      </thead>
+      <tbody id="product-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE: DETAIL -->
+<div id="page-detail" class="page">
+  <div class="page-nav">
+    <button class="btn-back" id="detail-back-btn" onclick="goCategory()">← 返回</button>
+    <div class="breadcrumb">
+      <span>首頁</span> <span>›</span>
+      <span id="detail-cat-name">分類</span> <span>›</span>
+      <span class="breadcrumb-cur" id="detail-breadcrumb">商品</span>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="detail-main">
+      <div class="info-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+          <div class="info-card-title" style="margin-bottom:0">商品資訊</div>
+          <button class="btn-ghost" style="font-size:12px;padding:5px 12px" onclick="openEditModal()">✏️ 編輯</button>
+        </div>
+
+        <!-- 商品照片（最多4張）-->
+        <div id="photo-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px"></div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+
+        <div class="product-name-big" id="detail-name">—</div>
+        <div class="product-sku-big" id="detail-sku">—</div>
+        <div class="price-grid">
+          <div class="price-block">
+            <div class="price-block-label">一般價格</div>
+            <div class="price-block-value price-normal" id="detail-price-normal">—</div>
+          </div>
+          <div class="price-block">
+            <div class="price-block-label">🏅 會員價格</div>
+            <div class="price-block-value price-member" id="detail-price-member">—</div>
+          </div>
+          <div class="price-block">
+            <div class="price-block-label">🥊 選手價格</div>
+            <div class="price-block-value price-athlete" id="detail-price-athlete">—</div>
+          </div>
+        </div>
+        <div id="restock-btn-wrap" style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button class="btn-confirm" style="background:var(--green-light)" onmouseover="this.style.background='#2d7a4f'" onmouseout="this.style.background='var(--green-light)'" onclick="openRestockModal(currentProduct)">＋ 進貨</button>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-card-title">近期扣庫記錄</div>
+        <div class="log-list" id="detail-log-list">
+          <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">尚無記錄</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="info-card">
+        <div id="stock-display-section">
+          <div class="info-card-title">庫存數量</div>
+          <div class="stock-display">
+            <div class="stock-number" id="detail-stock">—</div>
+            <div class="stock-unit">件</div>
+          </div>
+          <hr style="border-color:var(--border);margin-bottom:16px">
+        </div>
+        <div class="info-card-title">扣除庫存</div>
+        <!-- 三件組特殊欄位 -->
+        <div id="set3-fields" style="display:none;margin-bottom:12px">
+          <div class="form-label" style="margin-bottom:8px;color:var(--gold)">▸ 三件組登記</div>
+          <div class="form-row" style="margin-bottom:8px">
+            <label class="form-label">白色運動衣尺寸</label>
+            <select class="form-input" id="set3-white" style="background:#222">
+              <option value="">— 選擇 —</option>
+              <option>M</option><option>L</option><option>XL</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:8px">
+            <label class="form-label">黑色運動衣尺寸</label>
+            <select class="form-input" id="set3-black" style="background:#222">
+              <option value="">— 選擇 —</option>
+              <option>M</option><option>L</option><option>XL</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:12px">
+            <label class="form-label">外套尺寸</label>
+            <select class="form-input" id="set3-jacket" style="background:#222">
+              <option value="">— 選擇 —</option>
+              <option>L</option><option>XL</option>
+            </select>
+          </div>
+          <div class="deduct-type-row">
+            <button class="deduct-type-btn" onclick="selectDeductType(this,'售出')">售出</button>
+            <button class="deduct-type-btn" onclick="selectDeductType(this,'場館用')">場館用</button>
+            <button class="deduct-type-btn" onclick="selectDeductType(this,'損壞')">損壞</button>
+            <button class="deduct-type-btn" onclick="selectDeductType(this,'其他')">其他</button>
+          </div>
+          <textarea class="note-input" id="set3-note" rows="2" placeholder="備註（購買人姓名或其他資訊）"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button class="btn-confirm" onclick="confirmDeduct()">確認扣除</button>
+          </div>
+        </div>
+        <div class="deduct-type-row">
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'售出')">售出</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'場館用')">場館用</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'損壞')">損壞</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'其他')">其他</button>
+        </div>
+        <div class="deduct-row">
+          <input type="number" class="qty-input" id="deduct-qty" min="1" value="1" placeholder="數量">
+          <button class="btn-confirm" onclick="confirmDeduct()">確認扣除</button>
+        </div>
+        <textarea class="note-input" id="deduct-note" rows="2" placeholder="備註（購買人姓名或其他資訊）"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: LOG -->
+<div id="page-log" class="page">
+  <div class="home-hero">
+    <div class="home-title">扣庫<span>記錄</span></div>
+    <div class="home-subtitle">所有庫存異動紀錄</div>
+  </div>
+
+  <div class="log-filter-bar" style="flex-wrap:wrap;gap:8px">
+    <button class="filter-chip active" onclick="filterLog('all', this)">全部</button>
+    <button class="filter-chip" onclick="filterLog('售出', this)">售出</button>
+    <button class="filter-chip" onclick="filterLog('場館用', this)">場館用</button>
+    <button class="filter-chip" onclick="filterLog('損壞', this)">損壞</button>
+    <button class="filter-chip" onclick="filterLog('其他', this)">其他</button>
+    <button class="filter-chip" style="border-color:var(--green-light);color:var(--green-light)" onclick="filterLog('進貨', this)">進貨紀錄</button>
+  </div>
+
+  <div class="log-full-list" id="log-full-list">
+    <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">尚無記錄</div></div>
+  </div>
+</div>
+
+<!-- PAGE: CATALOG -->
+<div id="page-catalog" class="page">
+  <div style="padding:28px" id="catalog-content">
+    <div class="home-hero">
+      <div class="home-title">全商品<span>表</span></div>
+      <div class="home-subtitle">所有商品售價總覽</div>
+    </div>
+
+    <!-- 搜尋欄 -->
+    <div style="position:relative;margin-bottom:20px">
+      <input
+        id="catalog-search"
+        type="text"
+        placeholder="搜尋品項名稱或 SKU…"
+        oninput="onCatalogSearch(this.value)"
+        style="width:100%;background:#1a1a1a;border:1px solid var(--border);color:var(--white);padding:12px 44px 12px 16px;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--red)'"
+        onblur="this.style.borderColor='var(--border)'"
+      >
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--gray);font-size:16px;pointer-events:none">🔍</span>
+    </div>
+
+    <!-- 搜尋結果 -->
+    <div id="catalog-search-result" style="display:none;margin-bottom:24px">
+      <div class="section-title" style="color:var(--gold)">搜尋結果</div>
+      <div class="product-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>品項名稱</th>
+              <th>分類</th>
+              <th>一般價</th>
+              <th class="price-member">會員價</th>
+              <th class="price-athlete">選手價</th>
+            </tr>
+          </thead>
+          <tbody id="catalog-search-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 一般列表 -->
+    <div id="catalog-body"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="navTo('home', this)">首頁</div>
+  <div class="nav-item" onclick="navTo('catalog', this)">商品表</div>
+  <div class="nav-item" onclick="navTo('log', this)">記錄</div>
+</nav>
+
+<!-- MODAL: 新增商品 -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-title">新增商品</div>
+    <div class="form-row">
+      <label class="form-label">分類</label>
+      <select class="form-input" id="add-cat"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">商品名稱</label>
+      <input class="form-input" id="add-name" placeholder="例：Fairtex BGV1 拳套 藍色">
+    </div>
+    <div class="form-row">
+      <label class="form-label">貨號（SKU）</label>
+      <input class="form-input" id="add-sku" placeholder="例：FTX-BGV1-BL">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label class="form-label">一般價格</label>
+        <input class="form-input" id="add-p1" type="number" placeholder="0">
+      </div>
+      <div class="form-row">
+        <label class="form-label">會員價格</label>
+        <input class="form-input" id="add-p2" type="number" placeholder="0">
+      </div>
+      <div class="form-row">
+        <label class="form-label">選手價格</label>
+        <input class="form-input" id="add-p3" type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">初始庫存</label>
+      <input class="form-input" id="add-stock" type="number" placeholder="0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-add')">取消</button>
+      <button class="btn-primary" onclick="saveProduct()">新增商品</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 快速扣庫 -->
+<div class="modal-overlay" id="modal-deduct">
+  <div class="modal">
+    <div class="modal-title" id="modal-deduct-title">扣除庫存</div>
+    <div class="form-row">
+      <label class="form-label">選擇商品</label>
+      <select class="form-input" id="quick-product" onchange="onQuickProductChange()"></select>
+    </div>
+    <!-- 一般商品欄位 -->
+    <div id="modal-normal-fields">
+      <div class="form-row">
+        <label class="form-label">扣除數量</label>
+        <input class="form-input" id="quick-qty" type="number" min="1" value="1">
+      </div>
+      <div class="form-row">
+        <label class="form-label">用途分類</label>
+        <div class="deduct-type-row" style="margin-bottom:0">
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'售出')">售出</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'場館用')">場館用</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'損壞')">損壞</button>
+          <button class="deduct-type-btn" onclick="selectDeductType(this,'其他')">其他</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">備註</label>
+        <input class="form-input" id="quick-note" placeholder="購買人姓名或其他資訊">
+      </div>
+    </div>
+    <!-- 三件組欄位 -->
+    <div id="modal-set3-fields" style="display:none">
+      <div style="font-size:12px;color:var(--gold);margin-bottom:10px;letter-spacing:0.5px">▸ 選擇各件尺寸</div>
+      <div class="form-row">
+        <label class="form-label">白色運動衣尺寸</label>
+        <select class="form-input" id="modal-set3-white" style="background:#222">
+          <option value="">— 選擇 —</option>
+          <option>M</option><option>L</option><option>XL</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">黑色運動衣尺寸</label>
+        <select class="form-input" id="modal-set3-black" style="background:#222">
+          <option value="">— 選擇 —</option>
+          <option>M</option><option>L</option><option>XL</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">外套尺寸</label>
+        <select class="form-input" id="modal-set3-jacket" style="background:#222">
+          <option value="">— 選擇 —</option>
+          <option>L</option><option>XL</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">備註</label>
+        <input class="form-input" id="modal-set3-note" placeholder="備註（選填）">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-deduct')">取消</button>
+      <button class="btn-primary" onclick="confirmQuickDeduct()">確認扣除</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: 刪除商品 -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--red)">刪除商品</div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:16px">
+      確定要刪除「<span id="delete-product-name" style="color:var(--white);font-weight:700"></span>」？<br>
+      <span style="color:var(--red);font-size:12px">此操作無法復原。</span>
+    </div>
+    <div class="form-row">
+      <label class="form-label">請輸入 <span style="color:var(--red);font-weight:700">delete</span> 確認</label>
+      <input class="form-input" id="delete-confirm-input" placeholder="delete" autocomplete="off" style="font-family:monospace">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-delete')">取消</button>
+      <button class="btn-primary" style="background:var(--red)" onclick="confirmDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 進貨 -->
+<div class="modal-overlay" id="modal-restock">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--green-light)">進貨登記</div>
+    <div class="form-row">
+      <label class="form-label">選擇商品</label>
+      <select class="form-input" id="restock-product"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">進貨數量</label>
+      <input class="form-input" id="restock-modal-qty" type="number" min="1" value="1">
+    </div>
+    <div class="form-row">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="restock-modal-note" placeholder="廠商補貨 / 日期">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-restock')">取消</button>
+      <button class="btn-confirm" style="background:var(--green-light)" onclick="confirmQuickRestock()">確認進貨</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: 編輯商品 -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">編輯商品資訊</div>
+    <div class="form-row">
+      <label class="form-label">商品名稱</label>
+      <input class="form-input" id="edit-name">
+    </div>
+    <div class="form-row">
+      <label class="form-label">SKU</label>
+      <input class="form-input" id="edit-sku" style="font-family:monospace">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label class="form-label">一般價格</label>
+        <input class="form-input" id="edit-p1" type="number">
+      </div>
+      <div class="form-row">
+        <label class="form-label">會員價格</label>
+        <input class="form-input" id="edit-p2" type="number">
+      </div>
+      <div class="form-row">
+        <label class="form-label">選手價格</label>
+        <input class="form-input" id="edit-p3" type="number">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-edit')">取消</button>
+      <button class="btn-primary" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 編輯分類名稱 -->
+<div class="modal-overlay" id="modal-edit-cat">
+  <div class="modal">
+    <div class="modal-title">編輯分類名稱</div>
+    <div class="form-row">
+      <label class="form-label">分類名稱</label>
+      <input class="form-input" id="edit-cat-name-input" placeholder="輸入分類名稱">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-edit-cat')">取消</button>
+      <button class="btn-primary" onclick="saveEditCat()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 新增分類 -->
+<div class="modal-overlay" id="modal-add-cat">
+  <div class="modal">
+    <div class="modal-title">新增分類</div>
+    <div class="form-row">
+      <label class="form-label">分類名稱</label>
+      <input class="form-input" id="add-cat-name-input" placeholder="例：護具、補給品">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-add-cat')">取消</button>
+      <button class="btn-primary" onclick="confirmAddCat()">新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+let CATEGORIES = [
+  { id: 'aoc',     name: 'AOC'   },
+  { id: 'fairtex', name: '拳套'  },
+  { id: 'shorts',  name: '拳褲'  },
+  { id: 'wraps',   name: '手綁帶'},
+  { id: 'gear',    name: '裝備'  },
+  { id: 'other',   name: '其他'  },
+];
+
+const DATA_VERSION = 'v3';
+let products = JSON.parse(localStorage.getItem('fa_products') || '[]');
+let logs = JSON.parse(localStorage.getItem('fa_logs') || '[]');
+const savedVersion = localStorage.getItem('fa_version');
+// 從 localStorage 載入已儲存的分類（若有）
+const savedCats = localStorage.getItem('fa_categories');
+if (savedCats) {
+  try { CATEGORIES = JSON.parse(savedCats); } catch(e) {}
+}
+
+
+
+if (products.length === 0 || savedVersion !== DATA_VERSION) {
+  logs = savedVersion !== DATA_VERSION ? [] : logs;
+  products = [
+    // ── AOC 自有商品 ──
+    { id: 'a01', cat: 'aoc', name: 'AOC 運動涼感T 白色 M',    sku: 'AOC-TS-W-M',   p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a02', cat: 'aoc', name: 'AOC 運動涼感T 白色 L',    sku: 'AOC-TS-W-L',   p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a03', cat: 'aoc', name: 'AOC 運動涼感T 白色 XL',   sku: 'AOC-TS-W-XL',  p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a04', cat: 'aoc', name: 'AOC 運動涼感T 黑色 M',    sku: 'AOC-TS-BLA-M',  p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a05', cat: 'aoc', name: 'AOC 運動涼感T 黑色 L',    sku: 'AOC-TS-BLA-L',  p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a06', cat: 'aoc', name: 'AOC 運動涼感T 黑色 XL',   sku: 'AOC-TS-BLA-XL', p1: 990,  p2: 890,  p3: 790,  stock: 0 },
+    { id: 'a07', cat: 'aoc', name: 'AOC 運動防風外套 黑色 L',  sku: 'AOC-JK-BLA-L', p1: 1690, p2: 1590, p3: 1490, stock: 0 },
+    { id: 'a08', cat: 'aoc', name: 'AOC 運動防風外套 黑色 XL', sku: 'AOC-JK-BLA-XL',p1: 1690, p2: 1590, p3: 1490, stock: 0 },
+    { id: 'a09', cat: 'aoc', name: 'AOC 三件組', sku: 'AOC-SET3', p1: 3499, p2: 2999, p3: 2599, stock: 0 },
+    { id: 'a10', cat: 'aoc', name: 'AOC 大浴巾 粉紅',         sku: 'AOC-TWL-L-PK', p1: 790,  p2: 690,  p3: 600,  stock: 0 },
+    { id: 'a11', cat: 'aoc', name: 'AOC 大浴巾 白色',         sku: 'AOC-TWL-L-W',  p1: 790,  p2: 690,  p3: 600,  stock: 0 },
+    { id: 'a12', cat: 'aoc', name: 'AOC 大浴巾 棕色',         sku: 'AOC-TWL-L-BR', p1: 790,  p2: 690,  p3: 600,  stock: 0 },
+    { id: 'a13', cat: 'aoc', name: 'AOC 小毛巾 粉紅',         sku: 'AOC-TWL-S-PK', p1: 490,  p2: 450,  p3: 390,  stock: 0 },
+    { id: 'a14', cat: 'aoc', name: 'AOC 小毛巾 白色',         sku: 'AOC-TWL-S-W',  p1: 490,  p2: 450,  p3: 390,  stock: 0 },
+    { id: 'a15', cat: 'aoc', name: 'AOC 小毛巾 棕色',         sku: 'AOC-TWL-S-BR', p1: 490,  p2: 450,  p3: 390,  stock: 0 },
+    { id: 'a16', cat: 'aoc', name: 'AOC 帽 棕色',             sku: 'AOC-HAT-BR',   p1: 550,  p2: 490,  p3: 450,  stock: 0 },
+    { id: 'a17', cat: 'aoc', name: 'AOC 帽 灰色',             sku: 'AOC-HAT-GRA',   p1: 550,  p2: 490,  p3: 450,  stock: 0 },
+    { id: 'a18', cat: 'aoc', name: 'AOC 帽 綠色',             sku: 'AOC-HAT-GRE',   p1: 550,  p2: 490,  p3: 450,  stock: 0 },
+
+    // ── Fairtex 拳套 ──
+    { id: 'g01', cat: 'fairtex', name: 'BGV1–Blue 16oz',        sku: 'FT-BGV1-BLU-16',   p1: 3599, p2: 3299, p3: 3299, stock: 0 },
+    { id: 'g02', cat: 'fairtex', name: 'BGV1–Black 10oz',        sku: 'FT-BGV1-BLA-10',   p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g03', cat: 'fairtex', name: 'BGV1–Black 12oz',        sku: 'FT-BGV1-BLA-12',   p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g04', cat: 'fairtex', name: 'BGV1–White 10oz',        sku: 'FT-BGV1-W-10',    p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g05', cat: 'fairtex', name: 'BGV1–Blue 10oz',         sku: 'FT-BGV1-BLU-10',   p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g06', cat: 'fairtex', name: 'BGV1–Blue 12oz',         sku: 'FT-BGV1-BLU-12',   p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g07', cat: 'fairtex', name: 'BGV16–Maroon 10oz',      sku: 'FT-BGV16-MR-10',  p1: 3299, p2: 2999, p3: 2999, stock: 0 },
+    { id: 'g08', cat: 'fairtex', name: 'BGV14–SB 10oz',          sku: 'FT-BGV14-SB-10',  p1: 3599, p2: 3299, p3: 3200, stock: 0 },
+    { id: 'g09', cat: 'fairtex', name: 'BGV14–White 10oz',       sku: 'FT-BGV14-W-10',   p1: 3599, p2: 3299, p3: 3200, stock: 0 },
+    { id: 'g10', cat: 'fairtex', name: 'BGV14–Babypink 10oz',    sku: 'FT-BGV14-BP-10',  p1: 3599, p2: 3299, p3: 3200, stock: 0 },
+    { id: 'g11', cat: 'fairtex', name: 'BGV14–Y 10oz',           sku: 'FT-BGV14-Y-10',   p1: 3599, p2: 3299, p3: 3200, stock: 0 },
+    { id: 'g12', cat: 'fairtex', name: 'BGV14–PT B/W 12oz',      sku: 'FT-BGV14-PTB-12', p1: 3599, p2: 3299, p3: 3200, stock: 0 },
+    { id: 'g13', cat: 'fairtex', name: 'BGV11–F-Day 12oz',       sku: 'FT-BGV11-FD-12',  p1: 4599, p2: 4199, p3: 4199, stock: 0 },
+    { id: 'g14', cat: 'fairtex', name: 'BGV21–Legacy 12oz',      sku: 'FT-BGV21-LG-12',  p1: 3699, p2: 3399, p3: 3300, stock: 0 },
+    { id: 'g15', cat: 'fairtex', name: 'BGV25–F-Day2 12oz',      sku: 'FT-BGV25-FD-12',  p1: 4299, p2: 3899, p3: 3800, stock: 0 },
+    { id: 'g16', cat: 'fairtex', name: 'BGV1–Darkcloud 12oz',    sku: 'FT-BGV1-DC-12',   p1: 4099, p2: 3699, p3: 3600, stock: 0 },
+    { id: 'g17', cat: 'fairtex', name: 'BGV/Pre–Fiore 12oz',     sku: 'FT-BGV-PF-12',    p1: 5799, p2: 5299, p3: 5200, stock: 0 },
+    { id: 'g18', cat: 'fairtex', name: 'BGV18–Gold 14oz',        sku: 'FT-BGV18-GD-14',  p1: 3699, p2: 3399, p3: 3300, stock: 0 },
+    { id: 'g19', cat: 'fairtex', name: 'BGV25–F-Day2 14oz',      sku: 'FT-BGV25-FD-14',  p1: 4299, p2: 3899, p3: 3800, stock: 0 },
+    { id: 'g20', cat: 'fairtex', name: 'BGV1–KID-Yellow 6oz',    sku: 'FT-BGV1-KY-6',    p1: 3050, p2: 2799, p3: 2799, stock: 0 },
+
+    // ── Fairtex 拳褲 ──
+    { id: 's01', cat: 'shorts', name: '拳褲 BS1918 M (ENSO White)',   sku: 'FT-BS1918-M',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's02', cat: 'shorts', name: '拳褲 BS1918 L (ENSO White)',   sku: 'FT-BS1918-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's03', cat: 'shorts', name: '拳褲 BSG2 M (White–Gold)',     sku: 'FT-BSG2-M',    p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's04', cat: 'shorts', name: '拳褲 BSG2 L (White–Gold)',     sku: 'FT-BSG2-L',    p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's05', cat: 'shorts', name: '拳褲 BS1704 M (Red–White)',    sku: 'FT-BS1704-M',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's06', cat: 'shorts', name: '拳褲 BS1704 L (Red–White)',    sku: 'FT-BS1704-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's07', cat: 'shorts', name: '拳褲 BS1915 L (Green China)',  sku: 'FT-BS1915-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's08', cat: 'shorts', name: '拳褲 BS1920 L (Lava L)',       sku: 'FT-BS1920-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's09', cat: 'shorts', name: '拳褲 BS1713 M (Khaki)',        sku: 'FT-BS1713-M',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's10', cat: 'shorts', name: '拳褲 BS1903 M (Black)',        sku: 'FT-BS1903-M',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's11', cat: 'shorts', name: '拳褲 BS1902 L (Gray)',         sku: 'FT-BS1902-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's12', cat: 'shorts', name: '拳褲 BS1701 L (Yellow–Black)', sku: 'FT-BS1701-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's13', cat: 'shorts', name: '拳褲 BS1701 XL (Yellow–Black)',sku: 'FT-BS1701-XL', p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 's14', cat: 'shorts', name: '拳褲 BS1908 L (White)',        sku: 'FT-BS1908-L',  p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+
+    // ── Fairtex 手綁帶 ──
+    { id: 'w01', cat: 'wraps', name: '手綁帶 3M 薄荷綠', sku: 'FT-HW-3M-MG',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w02', cat: 'wraps', name: '手綁帶 3M 黃',     sku: 'FT-HW-3M-Y',   p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w03', cat: 'wraps', name: '手綁帶 3M 粉紅',   sku: 'FT-HW-3M-PK',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w04', cat: 'wraps', name: '手綁帶 3M 橘',     sku: 'FT-HW-3M-OR',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w05', cat: 'wraps', name: '手綁帶 3M 黑',     sku: 'FT-HW-3M-BLA',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w06', cat: 'wraps', name: '手綁帶 3M 灰',     sku: 'FT-HW-3M-GRA',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w07', cat: 'wraps', name: '手綁帶 3M 橄欖綠', sku: 'FT-HW-3M-OL',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w08', cat: 'wraps', name: '手綁帶 3M 紅',     sku: 'FT-HW-3M-RD',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w09', cat: 'wraps', name: '手綁帶 3M 藍',     sku: 'FT-HW-3M-BLU',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w10', cat: 'wraps', name: '手綁帶 3M 白',     sku: 'FT-HW-3M-W',   p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w11', cat: 'wraps', name: '手綁帶 5M Thai',   sku: 'FT-HW-5M-TH',  p1: 550, p2: 470, p3: 450, stock: 0 },
+    { id: 'w12', cat: 'wraps', name: '手綁帶 5M 黑',     sku: 'FT-HW-5M-BLA',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w13', cat: 'wraps', name: '手綁帶 5M 灰',     sku: 'FT-HW-5M-GRA',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w14', cat: 'wraps', name: '手綁帶 5M 橄欖綠', sku: 'FT-HW-5M-OL',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w15', cat: 'wraps', name: '手綁帶 5M 紅',     sku: 'FT-HW-5M-RD',  p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w16', cat: 'wraps', name: '手綁帶 5M 白',     sku: 'FT-HW-5M-W',   p1: 500, p2: 450, p3: 420, stock: 0 },
+    { id: 'w17', cat: 'wraps', name: '手綁帶 5M 莫蘭迪酒紅',  sku: 'FT-HW-5M-MR',  p1: 550, p2: 470, p3: 450, stock: 0 },
+    { id: 'w18', cat: 'wraps', name: '手綁帶 5M 莫蘭迪磚紅',  sku: 'FT-HW-5M-MB',  p1: 550, p2: 470, p3: 450, stock: 0 },
+    { id: 'w19', cat: 'wraps', name: '手綁帶 5M 莫蘭迪礦藍',  sku: 'FT-HW-5M-MM',  p1: 550, p2: 470, p3: 450, stock: 0 },
+
+    // ── Fairtex 包包 ──
+    { id: 'b01', cat: 'gear', name: 'Fairtex 旅行包 米白',  sku: 'FT-BAG-OW',  p1: 3299, p2: 2999, p3: 2900, stock: 0 },
+    { id: 'b02', cat: 'gear', name: 'Fairtex 旅行包 綠',    sku: 'FT-BAG-GRE',  p1: 3299, p2: 2999, p3: 2900, stock: 0 },
+    { id: 'b03', cat: 'gear', name: 'Fairtex 後背包(大) 綠', sku: 'FT-BP-L-GRE', p1: 2800, p2: 2599, p3: 2500, stock: 0 },
+    { id: 'b04', cat: 'gear', name: 'Fairtex 後背包(中) 葡萄',sku: 'FT-BP-M-PU', p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 'b05', cat: 'gear', name: 'Fairtex 後背包(中) 藍莓',sku: 'FT-BP-M-BB', p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+    { id: 'b06', cat: 'gear', name: 'Fairtex 後背包(中) 泰奶',sku: 'FT-BP-M-TM', p1: 1999, p2: 1799, p3: 1700, stock: 0 },
+
+    // ── 護具配件 ──
+    { id: 'p01', cat: 'gear', name: 'Fairtex 脱水衣 藍底白字 L',  sku: 'FT-SW-BWL',  p1: 3099, p2: 2799, p3: 2700, stock: 0 },
+    { id: 'p02', cat: 'gear', name: 'Fairtex 脱水衣 黑底藍字 L',  sku: 'FT-SW-BBL',  p1: 3099, p2: 2799, p3: 2700, stock: 0 },
+    { id: 'p03', cat: 'gear', name: 'Fairtex 脱水衣 黑底白字 XL', sku: 'FT-SW-BWXL', p1: 3099, p2: 2799, p3: 2700, stock: 0 },
+    { id: 'p04', cat: 'gear', name: 'Fairtex 長袖衣 RG7-白 L',    sku: 'FT-LS-RG7L', p1: 1799, p2: 1599, p3: 1500, stock: 0 },
+    { id: 'p05', cat: 'gear', name: 'Fairtex 長袖衣 RG7-白 XL',   sku: 'FT-LS-RG7XL',p1: 1799, p2: 1599, p3: 1500, stock: 0 },
+    { id: 'p06', cat: 'gear', name: 'Fairtex 護檔 藍 L',            sku: 'FT-GP-BLU',   p1: 1399, p2: 1299, p3: 1200, stock: 0 },
+    { id: 'p07', cat: 'gear', name: 'Fairtex 護檔 黑 L',            sku: 'FT-GP-BLA',   p1: 1399, p2: 1299, p3: 1200, stock: 0 },
+    { id: 'p08', cat: 'gear', name: 'Fairtex 腳脛 藍 L',          sku: 'FT-SG-BLU-L', p1: 3099, p2: 2799, p3: 2500, stock: 0 },
+    { id: 'p09', cat: 'gear', name: 'Fairtex 腳脛 黑 L',          sku: 'FT-SG-BLA-L', p1: 3099, p2: 2799, p3: 2500, stock: 0 },
+    { id: 'p10', cat: 'gear', name: 'Fairtex 護踝 粉紅',          sku: 'FT-AK-PK',   p1: 950,  p2: 860,  p3: 750,  stock: 0 },
+    { id: 'p11', cat: 'gear', name: 'Fairtex 護踝 綠',            sku: 'FT-AK-GRE',   p1: 950,  p2: 860,  p3: 750,  stock: 0 },
+    { id: 'p12', cat: 'gear', name: 'Usport 護齒',                sku: 'USP-MG',      p1: 350,  p2: 300,  p3: 280,  stock: 0 },
+
+    // ── 其他 ──
+    { id: 'o01', cat: 'other', name: '藥洗',  sku: 'MED-WASH', p1: 350, p2: 300, p3: 250, stock: 0 },
+  ];
+  // 注意：不呼叫 save()，等 Firebase 資料回來後才決定是否寫入初始資料
+}
+
+function saveToFirebase(changedProductId) {
+  // 只在有 Firebase 連線時呼叫
+  if (!window._fbReady || !window._db) return;
+  const db = window._db;
+  const ref = window._ref;
+  const set = window._set;
+
+  if (changedProductId) {
+    // 照片操作：把該商品的照片單獨存到 photos/{id}
+    const p = products.find(pr => pr.id === changedProductId);
+    if (p) {
+      // 基本資料存到 products/{id}（不含照片）
+      const { imgs, img, ...light } = p;
+      set(ref(db, 'products/' + p.id), light)
+        .catch(err => console.error('Save product error:', err));
+      // 照片單獨存到 photos/{id}
+      set(ref(db, 'photos/' + p.id), { imgs: p.imgs || [] })
+        .catch(err => console.error('Save photos error:', err));
+    }
+  } else {
+    // 一般操作（庫存、進貨等）：整包更新 products（不含照片，約 12KB）
+    const lightObj = {};
+    products.forEach(p => {
+      const { imgs, img, ...light } = p;
+      lightObj[p.id] = light;
+    });
+    set(ref(db, 'products'), lightObj)
+      .catch(err => console.error('Save products error:', err));
+  }
+  set(ref(db, 'logs'), logs)
+    .catch(err => console.error('Save logs error:', err));
+}
+
+function save(changedProductId) {
+  saveToFirebase(changedProductId);
+  // localStorage 只存不含照片的輕量版本
+  try {
+    const lightProducts = products.map(({ imgs, img, ...rest }) => rest);
+    localStorage.setItem('fa_products', JSON.stringify(lightProducts));
+    localStorage.setItem('fa_logs', JSON.stringify(logs));
+    localStorage.setItem('fa_version', DATA_VERSION);
+  } catch(e) {}
+}
+
+// ===== STATE =====
+let currentCat = null;
+let currentProduct = null;
+let logFilter = 'all';
+
+// ===== NAVIGATION =====
+function navTo(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (page === 'home') renderHome();
+  if (page === 'log') renderLog();
+  if (page === 'catalog') renderCatalog();
+  if (page === 'lowstock') renderLowStock();
+  if (page === 'editcat') renderEditCatList();
+}
+
+function goHome() {
+  currentCat = null;
+  navTo('home', document.querySelector('.nav-item'));
+}
+
+function goCategory() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-category').classList.add('active');
+  renderCategory(currentCat);
+}
+
+function openCategory(catId) {
+  currentCat = catId;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-category').classList.add('active');
+  renderCategory(catId);
+}
+
+function openDetail(productId) {
+  currentProduct = productId;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  renderDetail(productId);
+}
+
+// ===== RENDER =====
+
+// ── 分類管理 ──
+let _editCatId = null;
+
+function openEditCatPage() {
+  navTo('editcat', null);
+}
+
+function renderEditCatList() {
+  const list = document.getElementById('edit-cat-list');
+  if (!list) return;
+  list.innerHTML = CATEGORIES.map(cat => {
+    const count = products.filter(p => p.cat === cat.id).length;
+    const canDelete = count === 0;
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:700">${cat.name}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:3px">${count} 個商品</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" style="font-size:12px;padding:5px 14px" onclick="openEditCatModal('${cat.id}')">✏️ 編輯</button>
+          <button class="btn-ghost" style="font-size:12px;padding:5px 14px;${canDelete ? 'color:var(--red);border-color:var(--red)' : 'opacity:0.3;cursor:not-allowed'}" onclick="${canDelete ? "confirmDeleteCat('" + cat.id + "')" : 'alert("請先將此分類的商品移至其他分類或刪除商品，才能刪除此分類")'}">🗑 刪除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openEditCatModal(catId) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  if (!cat) return;
+  _editCatId = catId;
+  document.getElementById('edit-cat-name-input').value = cat.name;
+  document.getElementById('modal-edit-cat').classList.add('open');
+}
+
+function saveEditCat() {
+  const newName = document.getElementById('edit-cat-name-input').value.trim();
+  if (!newName) { alert('請輸入分類名稱'); return; }
+  const cat = CATEGORIES.find(c => c.id === _editCatId);
+  if (!cat) return;
+  cat.name = newName;
+  saveCategories();
+  closeModal('modal-edit-cat');
+  renderEditCatList();
+  // 更新商品總表的分類名稱快取
+  updateCatNameCache();
+}
+
+function openAddCatModal() {
+  document.getElementById('add-cat-name-input').value = '';
+  document.getElementById('modal-add-cat').classList.add('open');
+}
+
+function confirmAddCat() {
+  const name = document.getElementById('add-cat-name-input').value.trim();
+  if (!name) { alert('請輸入分類名稱'); return; }
+  // 產生唯一 id（用時間戳）
+  const id = 'cat_' + Date.now();
+  CATEGORIES.push({ id, name });
+  saveCategories();
+  closeModal('modal-add-cat');
+  renderEditCatList();
+  updateCatNameCache();
+}
+
+
+function confirmDeleteCat(catId) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  if (!cat) return;
+  const count = products.filter(p => p.cat === catId).length;
+  if (count > 0) {
+    alert('請先將此分類的商品移至其他分類或刪除商品，才能刪除此分類');
+    return;
+  }
+  if (!confirm(`確定要刪除「${cat.name}」分類嗎？`)) return;
+  CATEGORIES = CATEGORIES.filter(c => c.id !== catId);
+  saveCategories();
+  renderEditCatList();
+}
+
+function saveCategories() {
+  // 存入 Firebase
+  if (window._fbReady && window._db && window._ref && window._set) {
+    window._set(window._ref(window._db, 'categories'), CATEGORIES)
+      .catch(err => console.error('Categories save error:', err));
+  }
+  // 存入 localStorage
+  try {
+    localStorage.setItem('fa_categories', JSON.stringify(CATEGORIES));
+  } catch(e) {}
+}
+
+function updateCatNameCache() {
+  // 讓商品總表和 shop filter 使用最新分類名稱
+  const activePage = document.querySelector('.page.active');
+  if (activePage && activePage.id === 'page-catalog') renderCatalog();
+}
+
+function renderHome() {
+  const total = products.length;
+  const lowItems = products.filter(p => p.stock >= 1 && p.stock <= 10);
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-low').textContent = lowItems.length;
+
+  // 偏低數字只更新，細節頁另外渲染
+
+  const grid = document.getElementById('category-grid');
+  grid.innerHTML = CATEGORIES.map(cat => {
+    const catProducts = products.filter(p => p.cat === cat.id);
+    const lowCount = catProducts.filter(p => p.stock >= 1 && p.stock <= 10).length;
+    let badge = '';
+    if (lowCount > 0) badge = `<span class="cat-badge" style="background:var(--orange)">${lowCount} 偏低</span>`;
+    return `
+      <div class="category-card" onclick="openCategory('${cat.id}')">
+        <div class="cat-name">${cat.name}${badge}</div>
+        <div class="cat-count">${catProducts.length} 種商品</div>
+        <div class="cat-arrow">›</div>
+      </div>`;
+  }).join('');
+}
+
+
+// AOC 自訂排序關鍵字順序
+const AOC_ORDER = [
+  'AOC 運動涼感T 白色',
+  'AOC 運動涼感T 黑色',
+  'AOC 運動防風外套',
+  'AOC 三件組',
+  'AOC 小毛巾',
+  'AOC 大浴巾',
+  'AOC 帽',
+];
+
+function sortByName(arr) {
+  return [...arr].sort((a, b) => {
+    // AOC 商品用自訂順序
+    if (a.cat === 'aoc' && b.cat === 'aoc') {
+      const ai = AOC_ORDER.findIndex(k => a.name.startsWith(k));
+      const bi = AOC_ORDER.findIndex(k => b.name.startsWith(k));
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+    }
+    return a.name.localeCompare(b.name, 'zh-TW');
+  });
+}
+function renderCategory(catId) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  document.getElementById('cat-breadcrumb').textContent = cat.name;
+  document.getElementById('cat-table-title').textContent = cat.name;
+
+  const catProducts = sortByName(products.filter(p => p.cat === catId));
+  const tbody = document.getElementById('product-table-body');
+
+  if (catProducts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">此分類尚無商品</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = catProducts.map(p => {
+    const badge = stockBadge(p.stock);
+    const isSet3p = p.sku === 'AOC-SET3';
+    const badgeCell = isSet3p
+      ? `<span class="stock-badge" style="background:rgba(212,168,67,0.2);color:var(--gold)">組合商品</span>`
+      : badge;
+    return `
+      <tr onclick="openDetail('${p.id}')">
+        <td>
+          <div class="td-product">${p.name}</div>
+          <div class="td-sku">${p.sku}</div>
+        </td>
+        <td><span class="price-tag price-normal">$${p.p1.toLocaleString()}</span></td>
+        <td><span class="price-tag price-member">$${p.p2.toLocaleString()}</span></td>
+        <td><span class="price-tag price-athlete">$${p.p3.toLocaleString()}</span></td>
+        <td>${badgeCell}</td>
+        <td class="td-action" style="display:flex;gap:6px">
+          <button class="btn-deduct" onclick="event.stopPropagation();openDeductModal('${p.id}')">扣庫存</button>
+          <button class="btn-deduct" style="background:rgba(200,39,58,0.15);color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();openDeleteModal('${p.id}')">刪除</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderDetail(productId) {
+  const p = products.find(pr => pr.id === productId);
+  const cat = CATEGORIES.find(c => c.id === p.cat);
+
+  document.getElementById('detail-cat-name').textContent = cat.name;
+  document.getElementById('detail-breadcrumb').textContent = p.name;
+  document.getElementById('detail-name').textContent = p.name;
+  document.getElementById('detail-sku').textContent = p.sku;
+  document.getElementById('detail-price-normal').textContent = '$' + p.p1.toLocaleString();
+  document.getElementById('detail-price-member').textContent = '$' + p.p2.toLocaleString();
+  document.getElementById('detail-price-athlete').textContent = '$' + p.p3.toLocaleString();
+
+  // 商品照片（多張）
+  renderPhotoGrid(p);
+
+  const stockEl = document.getElementById('detail-stock');
+  stockEl.textContent = p.stock;
+  stockEl.style.color = p.stock === 0 ? 'var(--red)' : p.stock <= 5 ? 'var(--orange)' : 'var(--green-light)';
+
+  document.getElementById('deduct-qty').value = 1;
+  document.getElementById('deduct-note').value = '';
+  _deductType = '';
+  document.querySelectorAll('.deduct-type-btn').forEach(b => b.classList.remove('active'));
+  // 三件組特殊處理
+  const isSet3 = p.sku === 'AOC-SET3';
+  document.getElementById('set3-fields').style.display = isSet3 ? 'block' : 'none';
+  document.getElementById('stock-display-section').style.display = isSet3 ? 'none' : 'block';
+  document.getElementById('restock-btn-wrap').style.display = isSet3 ? 'none' : 'flex';
+  const deductRow = document.querySelector('.deduct-row');
+  if (deductRow) deductRow.style.display = isSet3 ? 'none' : 'flex';
+  document.getElementById('deduct-note').style.display = isSet3 ? 'none' : 'block';
+  if (isSet3) {
+    document.getElementById('set3-white').value = '';
+    document.getElementById('set3-black').value = '';
+    document.getElementById('set3-jacket').value = '';
+    document.getElementById('set3-note').value = '';
+    document.getElementById('deduct-note').placeholder = '備註（如：售出原因）';
+  } else {
+    document.getElementById('deduct-note').placeholder = '備註（如：售出 / 訓練用 / 損壞）';
+  }
+
+  const productLogs = logs.filter(l => l.productId === productId).slice(-5).reverse();
+  const logList = document.getElementById('detail-log-list');
+  if (productLogs.length === 0) {
+    logList.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">尚無記錄</div></div>`;
+  } else {
+    logList.innerHTML = productLogs.map(l => {
+      const isRestock = l.qty < 0;
+      const color = isRestock ? 'var(--green-light)' : 'var(--red)';
+      const icon = isRestock ? '📦' : '📉';
+      const action = isRestock ? `進貨 ${Math.abs(l.qty)} 件` : `扣除 ${l.qty} 件`;
+      const qtyText = isRestock ? `+${Math.abs(l.qty)}` : `-${l.qty}`;
+      return `
+      <div class="log-item" style="border-left-color:${color}">
+        <div class="log-icon" style="background:${isRestock ? 'rgba(58,158,102,0.15)' : 'rgba(200,39,58,0.15)'}">
+          ${icon}
+        </div>
+        <div class="log-meta">
+          <div class="log-action">${action}</div>
+          <div class="log-note">${l.note || '無備註'}</div>
+          <div class="log-time">${formatTime(l.time)}</div>
+        </div>
+        <div class="log-qty" style="color:${color}">${qtyText}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+
+
+function onCatalogSearch(query) {
+  const q = query.trim().toLowerCase();
+  const searchResult = document.getElementById('catalog-search-result');
+  const catalogBody  = document.getElementById('catalog-body');
+  const tbody        = document.getElementById('catalog-search-body');
+  const P = "font-family:'Bebas Neue',sans-serif;font-size:16px";
+  const pm = `class="price-member" style="${P}"`;
+  const pa = `class="price-athlete" style="${P}"`;
+
+  if (!q) {
+    searchResult.style.display = 'none';
+    catalogBody.style.display  = 'block';
+    return;
+  }
+
+  // 搜尋：名稱或 SKU 含有關鍵字（不分大小寫）
+  const catName = Object.fromEntries(CATEGORIES.map(c => [c.id, c.name]));
+  const matched = products.filter(p =>
+    p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+  );
+
+  if (matched.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:24px">找不到符合「${query}」的商品</td></tr>`;
+  } else {
+    tbody.innerHTML = matched.map(p => `
+      <tr style="cursor:pointer" onclick="openDetail('${p.id}');navTo('home',null)">
+        <td style="font-family:monospace;font-size:11px;color:var(--gray)">${highlight(p.sku, q)}</td>
+        <td style="font-weight:500">${highlight(p.name, q)}</td>
+        <td style="font-size:12px;color:var(--gray)">${catName[p.cat] || p.cat}</td>
+        <td>${p.p1.toLocaleString()}</td>
+        <td ${pm}>${p.p2.toLocaleString()}</td>
+        <td ${pa}>${p.p3.toLocaleString()}</td>
+      </tr>`).join('');
+  }
+
+  searchResult.style.display = 'block';
+  catalogBody.style.display  = 'none';
+}
+
+function highlight(text, query) {
+  if (!query) return text;
+  const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(re, '<mark style="background:rgba(200,39,58,0.3);color:var(--white);border-radius:2px;padding:0 2px">$1</mark>');
+}
+
+function renderCatalog() {
+  // 清空搜尋狀態
+  const searchInput = document.getElementById('catalog-search');
+  if (searchInput) { searchInput.value = ''; onCatalogSearch(''); }
+
+  const P = "font-family:'Bebas Neue',sans-serif;font-size:16px";
+  const pm = `class="price-member" style="${P}"`;
+  const pa = `class="price-athlete" style="${P}"`;
+
+  function section(title) {
+    return `<div class="section-title" style="margin-top:8px">${title}</div>`;
+  }
+  function subSection(title) {
+    return `<div style="font-size:12px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;padding-left:2px">${title}</div>`;
+  }
+  function tableWrap(html, mb='32px') {
+    return `<div class="product-table-wrap" style="margin-bottom:${mb}">${html}</div>`;
+  }
+  function thead(...cols) {
+    return `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  }
+  function pRow(sku, name, spec, p1, p2, p3, size='', extra='') {
+    const skuCell = `<td style="font-family:monospace;font-size:11px;color:var(--gray)">${sku}</td>`;
+    const sizeCell = size ? `<td>${size}</td>` : '';
+    const extraCell = extra ? `<td>${extra}</td>` : '';
+    return `<tr>${skuCell}<td>${name}</td><td>${spec}</td>${sizeCell}${extraCell}<td>${p1}</td><td ${pm}>${p2}</td><td ${pa}>${p3}</td></tr>`;
+  }
+
+  // ── AOC ──
+  const aocRows = sortByName(products.filter(p => p.cat === 'aoc')).map(p => {
+    const nameParts = p.name.replace('AOC ', '').split(' ');
+    const size = nameParts[nameParts.length - 1];
+    const base = nameParts.slice(0, -1).join(' ');
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${p.name}</td>
+      <td>—</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const aocTable = tableWrap(`<table>${thead('SKU','品項','規格','一般價','會員價','選手價')}<tbody>${aocRows}</tbody></table>`);
+
+  // ── 拳套 ──
+  const gloveRows = sortByName(products.filter(p => p.cat === 'fairtex')).map(p => {
+    const ozMatch = p.name.match(/(\d+)oz/);
+    const oz = ozMatch ? ozMatch[1] + ' oz' : '—';
+    const nameNoOz = p.name.replace(/\s*\d+oz/, '');
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${nameNoOz}</td>
+      <td>${oz}</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const gloveTable = tableWrap(`<table>${thead('SKU','品項','尺寸','一般價','會員價','選手價')}<tbody>${gloveRows}</tbody></table>`);
+
+  // ── 手綁帶 ──
+  const wrapRows = sortByName(products.filter(p => p.cat === 'wraps')).map(p => {
+    const mMatch = p.name.match(/(3M|5M)/);
+    const size = mMatch ? mMatch[1] : '—';
+    const spec = p.name.replace('手綁帶 3M ', '').replace('手綁帶 5M ', '');
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${size}</td>
+      <td>${spec}</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const wrapTable = tableWrap(`<table>${thead('SKU','品項','規格','一般價','會員價','選手價')}<tbody>${wrapRows}</tbody></table>`);
+
+  // ── 拳褲 ──
+  const shortsRows = sortByName(products.filter(p => p.cat === 'shorts')).map(p => {
+    const sizeMatch = p.name.match(/\s(M|L|XL)$/);
+    const size = sizeMatch ? sizeMatch[1] : '—';
+    const nameNoSize = p.name.replace(/\s(M|L|XL)$/, '').replace('拳褲 ', '');
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${nameNoSize}</td>
+      <td>${size}</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const shortsTable = tableWrap(`<table>${thead('SKU','品項','尺寸','一般價','會員價','選手價')}<tbody>${shortsRows}</tbody></table>`);
+
+  // ── 裝備 ──
+  const gearRows = sortByName(products.filter(p => p.cat === 'gear')).map(p => {
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${p.name}</td>
+      <td>—</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const gearTable = tableWrap(`<table>${thead('SKU','品項','規格','一般價','會員價','選手價')}<tbody>${gearRows}</tbody></table>`);
+
+  // ── 其他 ──
+  const otherRows = sortByName(products.filter(p => p.cat === 'other')).map(p => {
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--gray)">${p.sku}</td>
+      <td>${p.name}</td>
+      <td>—</td>
+      <td>${p.p1.toLocaleString()}</td>
+      <td ${pm}>${p.p2.toLocaleString()}</td>
+      <td ${pa}>${p.p3.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const otherTable = tableWrap(`<table>${thead('SKU','品項','備註','一般價','會員價','選手價')}<tbody>${otherRows}</tbody></table>`, '40px');
+
+  document.getElementById('catalog-body').innerHTML =
+    section('AOC') + aocTable +
+    section('Fairtex') +
+    subSection('拳套') + gloveTable +
+    subSection('手綁帶') + wrapTable +
+    subSection('拳褲') + shortsTable +
+    subSection('裝備') + gearTable +
+    section('其他品牌') + otherTable;
+}
+
+
+function renderLowStock() {
+  const catName = Object.fromEntries(CATEGORIES.map(c => [c.id, c.name]));
+  const lowItems = products.filter(p => p.stock >= 1 && p.stock <= 10)
+    .sort((a, b) => a.stock - b.stock);
+  const tbody = document.getElementById('low-stock-body');
+  if (lowItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--gray)">
+      <div style="font-size:32px;margin-bottom:8px">✅</div>
+      <div>目前沒有庫存偏低的商品</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lowItems.map(p => `
+    <tr onclick="openDetail('${p.id}')" style="cursor:pointer">
+      <td style="font-weight:500">${p.name}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--gray)">${p.sku}</td>
+      <td style="font-size:12px;color:var(--gray)">${catName[p.cat] || p.cat}</td>
+      <td><span class="stock-badge stock-low"><span class="dot"></span>${p.stock} 件</span></td>
+    </tr>`).join('');
+}
+
+function renderLog() {
+  const logList = document.getElementById('log-full-list');
+
+  let filtered;
+  if (logFilter === 'all') {
+    filtered = logs;
+  } else if (logFilter === '進貨') {
+    filtered = logs.filter(l => l.qty < 0);
+  } else {
+    filtered = logs.filter(l => l.qty >= 0 && l.note && (l.note === logFilter || l.note.startsWith(logFilter + '｜') || l.note.includes('｜' + logFilter) || l.note.includes(logFilter)));
+  }
+
+  const sorted = [...filtered].reverse();
+
+  if (sorted.length === 0) {
+    logList.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">尚無記錄</div></div>`;
+    return;
+  }
+
+  logList.innerHTML = sorted.map(l => {
+    const p = products.find(pr => pr.id === l.productId);
+    const pName = p ? p.name : '（已刪除商品）';
+    const isRestock = l.qty < 0;
+    const icon = isRestock ? '📦' : '📉';
+    const color = isRestock ? 'var(--green-light)' : 'var(--red)';
+    const qtyText = isRestock ? `+${Math.abs(l.qty)}` : `-${l.qty}`;
+    const borderStyle = `border-left:3px solid ${color}`;
+    return `
+      <div class="log-full-item" style="${borderStyle}" onclick="${p ? "openDetail('" + p.id + "')" : ''}">
+        <div class="log-full-icon" style="background:${isRestock ? 'rgba(58,158,102,0.15)' : 'rgba(200,39,58,0.15)'}">${icon}</div>
+        <div>
+          <div class="log-full-product">${pName}</div>
+          <div class="log-full-note">${l.note || '無備註'}</div>
+        </div>
+        <div class="log-full-time">${formatTime(l.time)}</div>
+        <div class="log-full-qty" style="color:${color}">${qtyText}</div>
+      </div>`;
+  }).join('');
+}
+
+// ===== STOCK BADGE =====
+function stockBadge(n) {
+  if (n === 0) return `<span class="stock-badge stock-out"><span class="dot"></span>售罄</span>`;
+  if (n <= 5) return `<span class="stock-badge stock-low"><span class="dot"></span>${n} 件</span>`;
+  return `<span class="stock-badge stock-ok"><span class="dot"></span>${n} 件</span>`;
+}
+
+// ===== DEDUCT =====
+function renderPhotoGrid(p) {
+  const grid = document.getElementById('photo-grid');
+  if (!grid) return;
+  const imgs = p.imgs || (p.img ? [p.img] : []);
+  let html = '';
+  imgs.forEach((src, i) => {
+    html += `<div style="position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#222">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block">
+      <button onclick="removePhoto(${i})" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.65);color:white;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+    </div>`;
+  });
+  if (imgs.length < 4) {
+    html += `<div onclick="document.getElementById('photo-input').click()" style="aspect-ratio:1/1;border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--gray);gap:8px;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-size:28px">＋</div>
+      <div style="font-size:11px;letter-spacing:0.5px">新增照片</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const p = products.find(pr => pr.id === currentProduct);
+    if (!p) return;
+    if (!p.imgs) p.imgs = p.img ? [p.img] : [];
+    delete p.img;
+    if (p.imgs.length >= 4) return;
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.82);
+      p.imgs.push(compressed);
+      save(p.id);
+      renderPhotoGrid(p);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removePhoto(index) {
+  const p = products.find(pr => pr.id === currentProduct);
+  if (!p.imgs) p.imgs = p.img ? [p.img] : [];
+  delete p.img;
+  p.imgs.splice(index, 1);
+  save(p.id);
+  renderPhotoGrid(p);
+}
+
+// confirmRestock 已整合至 confirmQuickRestock (modal)
+
+function confirmDeduct() {
+  const p = products.find(pr => pr.id === currentProduct);
+  const qty = parseInt(document.getElementById('deduct-qty').value) || 0;
+  const isSet3 = p.sku === 'AOC-SET3';
+  const rawNote = isSet3
+    ? document.getElementById('set3-note').value.trim()
+    : document.getElementById('deduct-note').value.trim();
+  // 組合：分類｜備注
+  let note = '';
+  if (_deductType) note += _deductType;
+  if (rawNote) note += (note ? '｜' : '') + rawNote;
+  if (!note) note = '';
+
+  if (isSet3) {
+    // 三件組：連動扣單品，不扣自身庫存
+    const w = document.getElementById('set3-white').value;
+    const b = document.getElementById('set3-black').value;
+    const j = document.getElementById('set3-jacket').value;
+    if (!w || !b || !j) { alert('請選擇三件商品的尺寸'); return; }
+
+    // 找對應單品
+    const whiteP  = products.find(pr => pr.sku === `AOC-TS-W-${w}`);
+    const blackP  = products.find(pr => pr.sku === `AOC-TS-BLA-${b}`);
+    const jacketP = products.find(pr => pr.sku === `AOC-JK-BLA-${j}`);
+
+    const missing = [];
+    if (!whiteP)  missing.push(`白色T ${w}`);
+    if (!blackP)  missing.push(`黑色T ${b}`);
+    if (!jacketP) missing.push(`外套 ${j}`);
+    if (missing.length) { alert('找不到商品：' + missing.join('、')); return; }
+
+    if (whiteP.stock < 1)  { alert(`庫存不足：AOC 運動涼感T 白色 ${w}（剩 ${whiteP.stock} 件）`); return; }
+    if (blackP.stock < 1)  { alert(`庫存不足：AOC 運動涼感T 黑色 ${b}（剩 ${blackP.stock} 件）`); return; }
+    if (jacketP.stock < 1) { alert(`庫存不足：AOC 運動防風外套 黑色 ${j}（剩 ${jacketP.stock} 件）`); return; }
+
+    const setNote = note ? `三件組｜${note}` : '三件組';
+    const ts = Date.now();
+    whiteP.stock--;
+    blackP.stock--;
+    jacketP.stock--;
+    logs.push({ id: ts,     productId: whiteP.id,  qty: 1, note: `${setNote}（白色T ${w}）`, time: new Date().toISOString() });
+    logs.push({ id: ts + 1, productId: blackP.id,  qty: 1, note: `${setNote}（黑色T ${b}）`, time: new Date().toISOString() });
+    logs.push({ id: ts + 2, productId: jacketP.id, qty: 1, note: `${setNote}（外套 ${j}）`,  time: new Date().toISOString() });
+    save();
+    renderDetail(p.id);
+    return;
+  }
+
+  if (qty <= 0) { alert('請輸入有效數量'); return; }
+  if (qty > p.stock) { alert('扣除數量超過庫存！'); return; }
+
+  p.stock -= qty;
+  logs.push({ id: Date.now(), productId: p.id, qty, note, time: new Date().toISOString() });
+  save();
+  renderDetail(p.id);
+}
+
+function confirmQuickDeduct() {
+  const productId = document.getElementById('quick-product').value;
+  const p = products.find(pr => pr.id === productId);
+  if (!p) { alert('請選擇商品'); return; }
+
+  if (p.sku === 'AOC-SET3') {
+    const w = document.getElementById('modal-set3-white').value;
+    const b = document.getElementById('modal-set3-black').value;
+    const j = document.getElementById('modal-set3-jacket').value;
+    const note = document.getElementById('modal-set3-note').value.trim();
+    if (!w || !b || !j) { alert('請選擇三件商品的尺寸'); return; }
+
+    const whiteP  = products.find(pr => pr.sku === `AOC-TS-W-${w}`);
+    const blackP  = products.find(pr => pr.sku === `AOC-TS-BLA-${b}`);
+    const jacketP = products.find(pr => pr.sku === `AOC-JK-BLA-${j}`);
+
+    const missing = [];
+    if (!whiteP)  missing.push(`白色T ${w}`);
+    if (!blackP)  missing.push(`黑色T ${b}`);
+    if (!jacketP) missing.push(`外套 ${j}`);
+    if (missing.length) { alert('找不到商品：' + missing.join('、')); return; }
+    if (whiteP.stock < 1)  { alert(`庫存不足：AOC 運動涼感T 白色 ${w}`); return; }
+    if (blackP.stock < 1)  { alert(`庫存不足：AOC 運動涼感T 黑色 ${b}`); return; }
+    if (jacketP.stock < 1) { alert(`庫存不足：AOC 運動防風外套 黑色 ${j}`); return; }
+
+    const setNote = note ? `三件組｜${note}` : '三件組';
+    const ts = Date.now();
+    whiteP.stock--;  blackP.stock--;  jacketP.stock--;
+    logs.push({ id: ts,     productId: whiteP.id,  qty: 1, note: `${setNote}（白色T ${w}）`,  time: new Date().toISOString() });
+    logs.push({ id: ts + 1, productId: blackP.id,  qty: 1, note: `${setNote}（黑色T ${b}）`,  time: new Date().toISOString() });
+    logs.push({ id: ts + 2, productId: jacketP.id, qty: 1, note: `${setNote}（外套 ${j}）`,   time: new Date().toISOString() });
+    save();
+    closeModal('modal-deduct');
+    renderHome();
+    return;
+  }
+
+  const qty = parseInt(document.getElementById('quick-qty').value) || 0;
+  const rawNote = document.getElementById('quick-note').value.trim();
+  const note = _deductType ? (_deductType + (rawNote ? '｜' + rawNote : '')) : rawNote;
+  if (qty <= 0) { alert('請輸入有效數量'); return; }
+  if (qty > p.stock) { alert('扣除數量超過庫存！'); return; }
+  p.stock -= qty;
+  logs.push({ id: Date.now(), productId: p.id, qty, note, time: new Date().toISOString() });
+  save();
+  closeModal('modal-deduct');
+  renderHome();
+}
+
+// ===== ADD PRODUCT =====
+function saveProduct() {
+  const cat = document.getElementById('add-cat').value;
+  const name = document.getElementById('add-name').value.trim();
+  const sku = document.getElementById('add-sku').value.trim();
+  const p1 = parseInt(document.getElementById('add-p1').value) || 0;
+  const p2 = parseInt(document.getElementById('add-p2').value) || 0;
+  const p3 = parseInt(document.getElementById('add-p3').value) || 0;
+  const stock = parseInt(document.getElementById('add-stock').value) || 0;
+
+  if (!name) { alert('請輸入商品名稱'); return; }
+
+  products.push({
+    id: 'p' + Date.now(),
+    cat, name, sku: sku || '—', p1, p2, p3, stock
+  });
+  save();
+  closeModal('modal-add');
+  renderHome();
+}
+
+// ===== MODAL =====
+function openAddProduct() {
+  const select = document.getElementById('add-cat');
+  select.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (currentCat) select.value = currentCat;
+  ['add-name','add-sku','add-p1','add-p2','add-p3','add-stock'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.type === 'number') el.value = '';
+    else el.value = '';
+  });
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function openDeductModal(productId) {
+  const select = document.getElementById('quick-product');
+  select.innerHTML = products.map(p => {
+    const label = p.sku === 'AOC-SET3' ? `${p.name}（組合）` : `${p.name}（庫存：${p.stock}）`;
+    return `<option value="${p.id}">${label}</option>`;
+  }).join('');
+  if (productId) select.value = productId;
+  document.getElementById('quick-qty').value = 1;
+  document.getElementById('quick-note').value = '';
+  _deductType = '';
+  document.querySelectorAll('.deduct-type-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('modal-set3-white').value = '';
+  document.getElementById('modal-set3-black').value = '';
+  document.getElementById('modal-set3-jacket').value = '';
+  document.getElementById('modal-set3-note').value = '';
+  document.getElementById('modal-deduct').classList.add('open');
+  onQuickProductChange();
+}
+
+function onQuickProductChange() {
+  const productId = document.getElementById('quick-product').value;
+  const p = products.find(pr => pr.id === productId);
+  const isSet3 = p && p.sku === 'AOC-SET3';
+  document.getElementById('modal-normal-fields').style.display = isSet3 ? 'none' : 'block';
+  document.getElementById('modal-set3-fields').style.display = isSet3 ? 'block' : 'none';
+  document.getElementById('modal-deduct-title').textContent = isSet3 ? 'AOC 三件組 扣除' : '扣除庫存';
+}
+
+
+function openEditModal() {
+  const p = products.find(pr => pr.id === currentProduct);
+  if (!p) return;
+  document.getElementById('edit-name').value = p.name;
+  document.getElementById('edit-sku').value  = p.sku;
+  document.getElementById('edit-p1').value   = p.p1;
+  document.getElementById('edit-p2').value   = p.p2;
+  document.getElementById('edit-p3').value   = p.p3;
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function saveEdit() {
+  const p = products.find(pr => pr.id === currentProduct);
+  if (!p) return;
+  const name = document.getElementById('edit-name').value.trim();
+  const sku  = document.getElementById('edit-sku').value.trim();
+  const p1   = parseInt(document.getElementById('edit-p1').value) || 0;
+  const p2   = parseInt(document.getElementById('edit-p2').value) || 0;
+  const p3   = parseInt(document.getElementById('edit-p3').value) || 0;
+  if (!name) { alert('商品名稱不能為空'); return; }
+  p.name = name;
+  p.sku  = sku || p.sku;
+  p.p1   = p1;
+  p.p2   = p2;
+  p.p3   = p3;
+  save();
+  closeModal('modal-edit');
+  renderDetail(p.id);
+}
+
+
+let _deleteProductId = null;
+
+function openDeleteModal(productId) {
+  const p = products.find(pr => pr.id === productId);
+  if (!p) return;
+  _deleteProductId = productId;
+  document.getElementById('delete-product-name').textContent = p.name;
+  document.getElementById('delete-confirm-input').value = '';
+  document.getElementById('modal-delete').classList.add('open');
+}
+
+function confirmDelete() {
+  const input = document.getElementById('delete-confirm-input').value.trim();
+  if (input !== 'delete') {
+    document.getElementById('delete-confirm-input').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('delete-confirm-input').style.borderColor = '', 1000);
+    return;
+  }
+
+  // 找到被刪商品的 index（Firebase 陣列 index）
+  const idx = products.findIndex(p => p.id === _deleteProductId);
+
+  // 從本地移除
+  products = products.filter(p => p.id !== _deleteProductId);
+  logs = logs.filter(l => l.productId !== _deleteProductId);
+
+  // Firebase：remove 基本資料 + photos 節點
+  if (window._fbReady && window._db && window._ref && window._remove && window._set) {
+    const db = window._db;
+    const ref = window._ref;
+    const remove = window._remove;
+    const set = window._set;
+    remove(ref(db, 'products/' + _deleteProductId))
+      .then(() => console.log('已刪除 products/' + _deleteProductId))
+      .catch(err => console.error('Delete product error:', err));
+    remove(ref(db, 'photos/' + _deleteProductId))
+      .catch(err => console.error('Delete photos node error:', err));
+    set(ref(db, 'logs'), logs)
+      .catch(err => console.error('Save logs error:', err));
+
+  }
+
+  // localStorage 輕量更新
+  try {
+    const lightProducts = products.map(({ imgs, img, ...rest }) => rest);
+    localStorage.setItem('fa_products', JSON.stringify(lightProducts));
+    localStorage.setItem('fa_logs', JSON.stringify(logs));
+  } catch(e) {}
+
+  closeModal('modal-delete');
+  _deleteProductId = null;
+  if (currentCat) renderCategory(currentCat);
+  else renderHome();
+}
+
+function openRestockModal(productId) {
+  const select = document.getElementById('restock-product');
+  select.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (庫存:${p.stock})</option>`).join('');
+  if (productId) select.value = productId;
+  document.getElementById('restock-modal-qty').value = 1;
+  document.getElementById('restock-modal-note').value = '';
+  document.getElementById('modal-restock').classList.add('open');
+}
+
+function confirmQuickRestock() {
+  const productId = document.getElementById('restock-product').value;
+  const qty = parseInt(document.getElementById('restock-modal-qty').value) || 0;
+  const note = document.getElementById('restock-modal-note').value.trim();
+  const p = products.find(pr => pr.id === productId);
+
+  if (!p) { alert('請選擇商品'); return; }
+  if (qty <= 0) { alert('請輸入有效數量'); return; }
+
+  p.stock += qty;
+  logs.push({ id: Date.now(), productId: p.id, qty: -qty, note: '【進貨】' + (note || ''), time: new Date().toISOString() });
+  save();
+  closeModal('modal-restock');
+  renderHome();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ===== LOG FILTER =====
+function filterLog(type, el) {
+  logFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderLog();
+}
+
+// ===== UTIL =====
+function formatTime(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ===== INIT =====
+
+let _deductType = '';
+
+function selectDeductType(btn, type) {
+  _deductType = type;
+  // 同一個 deduct-type-row 裡的 btn 都取消 active，只讓當前的 active
+  btn.closest('.deduct-type-row').querySelectorAll('.deduct-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let _fbInitialized = false;
+
+function initFirebase() {
+  if (_fbInitialized) return;
+  _fbInitialized = true;
+  const db = window._db;
+  const ref = window._ref;
+  const set = window._set;
+  const onValue = window._onValue;
+  const remove = window._remove;
+
+  // photos 快取：存放各商品的照片
+  const photosCache = {};
+
+  // ── 監聽 products（只有基本資料，不含照片）──
+  let productsFirstLoad = true;
+  onValue(ref(db, 'products'), snapshot => {
+    const raw = snapshot.val();
+    let data = null;
+    if (raw) {
+      if (Array.isArray(raw)) {
+        // 舊格式（array index）：自動遷移到新格式
+        console.log('偵測到舊格式，自動遷移...');
+        const validProducts = raw.filter(p => p != null);
+        if (validProducts.length > 0) {
+          // 遷移：逐筆寫入，避免整包超出 16MB 限制
+          // 每次只寫一筆商品的照片（約 200KB），完全不超限
+          let migrateIdx = 0;
+          function migrateNext() {
+            if (migrateIdx >= validProducts.length) {
+              console.log('遷移完成！共', validProducts.length, '筆');
+              return;
+            }
+            const p = validProducts[migrateIdx++];
+            const { imgs, img, ...light } = p;
+            // 寫基本資料
+            set(ref(db, 'products/' + p.id), light)
+              .then(() => {
+                // 寫照片
+                if (imgs && imgs.length > 0) {
+                  return set(ref(db, 'photos/' + p.id), { imgs });
+                }
+              })
+              .then(() => migrateNext())
+              .catch(e => {
+                console.error('Migrate error:', p.id, e);
+                migrateNext(); // 失敗也繼續
+              });
+          }
+          migrateNext();
+          // 先用舊資料渲染
+          data = validProducts;
+        }
+      } else if (typeof raw === 'object') {
+        // 新格式（id 為 key）
+        data = Object.values(raw).filter(p => p != null);
+      }
+    }
+
+    if (data && data.length > 0) {
+      // 合併照片快取到 products
+      products = data.map(p => ({
+        ...p,
+        imgs: photosCache[p.id] || p.imgs || []
+      }));
+      try {
+        const lightP = products.map(p => { const {imgs,img,...r} = p; return r; });
+        localStorage.setItem('fa_products', JSON.stringify(lightP));
+        localStorage.setItem('fa_version', DATA_VERSION);
+      } catch(e) {}
+    } else if (productsFirstLoad) {
+      // 全新安裝
+      console.log('Firebase 無資料，寫入預設商品');
+      const initObj = {};
+      products.forEach(p => { initObj[p.id] = p; });
+      set(ref(db, 'products'), initObj)
+        .catch(err => console.error('初始化失敗:', err));
+      set(ref(db, 'logs'), logs)
+        .catch(err => console.error('初始化 logs 失敗:', err));
+    }
+
+    if (productsFirstLoad) {
+      productsFirstLoad = false;
+      renderHome();
+      return;
+    }
+    const page = document.querySelector('.page.active');
+    if (!page) { renderHome(); return; }
+    if (page.id === 'page-home') renderHome();
+    else if (page.id === 'page-category' && currentCat) renderCategory(currentCat);
+    else if (page.id === 'page-detail' && currentProduct) renderDetail(currentProduct);
+    else if (page.id === 'page-lowstock') renderLowStock();
+    else if (page.id === 'page-catalog') renderCatalog();
+  });
+
+  // ── 監聽 photos（各商品照片獨立存放）──
+  onValue(ref(db, 'photos'), snapshot => {
+    const raw = snapshot.val();
+    if (!raw) return;
+    // 更新照片快取
+    Object.keys(raw).forEach(id => {
+      photosCache[id] = raw[id]?.imgs || [];
+    });
+    // 把照片合併回 products
+    products = products.map(p => ({
+      ...p,
+      imgs: photosCache[p.id] || p.imgs || []
+    }));
+    // 如果在商品詳細頁，重新渲染照片
+    const page = document.querySelector('.page.active');
+    if (page && page.id === 'page-detail' && currentProduct) {
+      const p = products.find(pr => pr.id === currentProduct);
+      if (p) renderPhotoGrid(p);
+    }
+  });
+
+  // ── 監聽 logs ──
+  onValue(ref(db, 'logs'), snapshot => {
+    const data = snapshot.val();
+    if (data && Array.isArray(data)) {
+      logs = data;
+      try { localStorage.setItem('fa_logs', JSON.stringify(logs)); } catch(e) {}
+      const page = document.querySelector('.page.active');
+      if (page && page.id === 'page-log') renderLog();
+    }
+  });
+}
+
+// 用 callback 機制確保 Firebase module script 一定能呼叫到 initFirebase
+if (window._fbReady) {
+  // Firebase 已就緒（極少數情況）
+  initFirebase();
+} else {
+  // 把 initFirebase 存為 callback，等 Firebase module 載入完呼叫
+  window._initFirebaseCb = initFirebase;
+}
+// 安全備援：5秒後還沒初始化，強制用本地資料渲染
+setTimeout(() => {
+  if (!_fbInitialized) {
+    console.warn('Firebase 逾時，使用本地資料');
+    renderHome();
+  }
+}, 5000);
+</script>
+</body>
+</html>
