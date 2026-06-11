@@ -2005,6 +2005,7 @@ function removePhoto(index) {
 // confirmRestock 已整合至 confirmQuickRestock (modal)
 
 function confirmDeduct() {
+  if (!_deductType) { alert('請勾選用途分類'); return; }
   const p = products.find(pr => pr.id === currentProduct);
   const qty = parseInt(document.getElementById('deduct-qty').value) || 0;
   const isSet3 = p.sku === 'AOC-SET3';
@@ -2065,6 +2066,7 @@ function confirmQuickDeduct() {
   const productId = document.getElementById('quick-product').value;
   const p = products.find(pr => pr.id === productId);
   if (!p) { alert('請選擇商品'); return; }
+  if (!_deductType) { alert('請勾選用途分類'); return; }
 
   if (p.sku === 'AOC-SET3') {
     const w = document.getElementById('modal-set3-white').value;
