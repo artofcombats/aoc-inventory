@@ -79,9 +79,12 @@ header nav{display:flex;gap:8px;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 
 /* 卡片 */
-.card{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;display:flex;flex-direction:column}
-.card-img{position:relative;aspect-ratio:1/1;background:var(--ph);cursor:pointer;overflow:hidden}
-.card-img img.p{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.card{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;display:flex;flex-direction:column;cursor:pointer;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--brand);transform:translateY(-2px)}
+.card:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.card:hover .card-img img.p{transform:scale(1.03)}
+.card-img{position:relative;aspect-ratio:1/1;background:var(--ph);overflow:hidden}
+.card-img img.p{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s,transform .3s}
 .card-img img.p.on{opacity:1}
 .card-img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .card-img .ph img{height:22%;width:auto;filter:invert(1);mix-blend-mode:multiply;opacity:.35}
@@ -99,8 +102,6 @@ header nav{display:flex;gap:8px;align-items:center}
 .stock.low{color:var(--brand);font-weight:500}
 .stock.out{color:#fff;background:var(--red);padding:2px 8px;border-radius:999px;font-weight:500}
 .stock.out::before{display:none}
-.card-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;padding-top:4px}
-.card-btns .btn{height:36px;padding:0 8px;font-size:13px}
 
 .empty,.loading{padding:60px 0;text-align:center;color:var(--muted)}
 .spinner{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--brand);border-radius:50%;margin:0 auto 12px;animation:spin .8s linear infinite}
@@ -175,8 +176,6 @@ footer .copy{margin-top:20px;font-family:var(--en);font-size:11px;color:#B0B0B0;
   .card-name{font-size:13px}
   .prices div{font-size:12px}
   .prices .member .num{font-size:15px}
-  .card-btns{gap:6px}
-  .card-btns .btn{height:32px;font-size:12px;padding:0 4px}
   .tag-cat{top:8px;right:8px;font-size:10px;padding:2px 7px}
   .cta{margin-top:40px;padding:28px 20px;flex-direction:column;align-items:flex-start;gap:18px}
   .cta h2{font-size:17px}
@@ -347,8 +346,8 @@ function renderCats(){
 function cardHtml(g){
   const priceNum = (lo,hi) => money(lo) + (hi > lo ? ' 起' : '');
   const img = g.photoId ? `<img class="p" data-photo="${g.photoId}" alt="${esc(g.name)}">` : '';
-  return `<div class="card">
-    <div class="card-img" onclick="openDetail('${esc(g.key)}')">${phHtml()}${img}<span class="tag-cat">${CAT_NAMES[g.cat]||g.cat}</span></div>
+  return `<div class="card" role="button" tabindex="0" aria-label="${esc(g.name)}" onclick="openDetail('${esc(g.key)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${esc(g.key)}')}">
+    <div class="card-img">${phHtml()}${img}<span class="tag-cat">${CAT_NAMES[g.cat]||g.cat}</span></div>
     <div class="card-body">
       <div class="card-name">${esc(g.name)}</div>
       <div class="prices">
@@ -356,10 +355,6 @@ function cardHtml(g){
         <div class="member"><span class="lbl">會員價</span><span class="num">${priceNum(g.p2,g.p2max)}</span></div>
       </div>
       ${stockHtml(g.stock)}
-      <div class="card-btns">
-        <button class="btn btn-line" onclick="openDetail('${esc(g.key)}')">看詳情</button>
-        <a class="btn btn-solid" href="https://lin.ee/RlwlCAX" target="_blank" rel="noopener">LINE 詢問</a>
-      </div>
     </div>
   </div>`;
 }
